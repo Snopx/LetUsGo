@@ -1,2 +1,2 @@
 # LetUsGo
-This is a repo for learning golang.
+This is a repo for learning golang and rust.
