@@ -205,17 +205,93 @@ func doWork(data string) {
 
 
 
-## **defer 的执行顺序**
+## **接口**
+
+接口的本质是引入一个新的中间层，调用方通过接口与具体实现分离，解除上下游的耦合，上层模块不需要依赖下层的具体模块，只需要依赖一个约定好的接口。
+
+Go 语言中的接口有两种表达形式，一种是正常的接口类型，另外一种不包含任何方法的接口在实现时，使用了特殊的类型。
+
+> interface{} 类型不是任意类型。如果将类型转换成了 interface{} 类型，变量在运行期间的类型也会发生变化，获取变量类型时会得到 interface{}
+
+**Go 语言的接口类型不是任意类型，它很有可能向方法传入参数之后，变量的赋值，类型转换时，发生隐式的类型转换。**
+
+
+
+## **反射**
+
+Go 语言中反射的第一法则：**我们能将 Go 语言的 interface{} 变量转换成反射对象。因为函数的调用都是值传递，所以变量类型在底层函数调用时进行类型转换。所以会从基本类型转换到 interface{}**
+
+第二法则：我们可以从反射对象获取 interface{} 变量。
+
+第三法则：我们得到的反射对象跟原对象没有任何关系，那么直接修改反射对象无法改变原变量，程序为了防止错误就会崩溃。
+
+
+
+## Select
+
+同时有多个 case 就绪时 select 会**随机**选择一个 case 执行其中的代码，这是为了避免按照顺序执行，后面的条件永远得不到执行，引入随机性是为了避免饥饿问题发生。 
+
+
+
+## **panic 和 recover 关键字**
+
+panic 只会触发当前 Goroutine 的 defer
+
+recover 只有在 defer 中调用才会生效
+
+panic 允许在 defer 中嵌套多次调用
+
+
+
+## **defer**
+
+使用 defer 最常见的场景是在函数调用结束后完成一些收尾工作，例如在 defer 中回滚数据库的事务。
+
+**执行顺序**
 
 一个函数中，多个 defer 的执行顺序为 “后进先出”，但是这里要注意，如果函数中包含 return ，会先执行 return ，再执行 defer 。如果函数中包含 **panic** 函数，那么会先执行 defer 函数，最后再执行 panic 函数。
 
 **defer声明时会先计算确定参数的值，defer推迟执行的仅是其函数体。**
 
-更多学习细节：https://www.huaweicloud.com/zhishi/arc-3376259.html
+
+
+## **Channel**
+
+先从 Channel 读取数据的 Goroutine 会先接收到数据
+
+先向 Channel 发送数据的 Goroutine 会得到先发送数据的权利
+
+Channel 在运行时使用 runtime.hchan 结构体：
+
+```go
+type hchan struct {
+	qcount   uint   // Channel 中的元素个数
+	dataqsiz uint   // Channel 中的循环队列的长度
+	buf      unsafe.Pointer  // Channel 的缓冲区数据指针
+	elemsize uint16 // Channel 能够手法的元素大小  
+	closed   uint32
+	elemtype *_type // Channel 能够手法的元素类型
+	sendx    uint   // Channel 的发送操作处理到的位置       
+	recvx    uint   // Channel 的接收操作处理到的位置
+	recvq    waitq  // 存储当前 Channel 由于缓冲区空间不足而阻塞的 Goroutine 列表
+	sendq    waitq
+
+	lock mutex
+}
+
+type waitq struct {
+	first *sudog
+	last  *sudog
+}
+```
+
+Channel 是一个用于同步和通信的有锁队列。
+
+> 向一个已经关闭的 Channel 发送数据时，会报告错误并中止程序。 向一个已经关闭的 Channel （无缓存）读数据时，会读取到零值。 向一个已经关闭的 Channel （有缓存） 读取数据时，会读取通道里面的剩余值。剩余值读取完后会读到零值。
 
 
 
-## 学习资料
+## 学习资料 
 
 《Go 并发编程实战》
 
